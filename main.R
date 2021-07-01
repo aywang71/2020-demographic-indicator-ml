@@ -27,10 +27,13 @@ glimpse(data)
 str(data)
 print(sum(is.na(data)))
 data$outcome <- ifelse(data$percentage16_Donald_Trump>data$percentage16_Hillary_Clinton,-1,1) # -1 = republican, 1 = democrat
+data %>% count(outcome)
 
 ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
 trainingLabels <- data[ind == 1, 52]
+table(trainingLabels)
 testingLabels <- data[ind == 2, 52]
+table(testingLabels)
 
 populationTraining <- data[ind == 1, c(16:20,27)]
 populationTesting <- data[ind == 2, c(16:20,27)]
@@ -57,7 +60,7 @@ incomePrediction <- knn(train = incomeTraining, test = incomeTesting, cl = train
 CrossTable(x = testingLabels, y = incomePrediction, prop.chisq = FALSE)
 
 employmentTraining <- data[ind == 1, c(33:37,44)]
-employmentTesting <- data[ind == 1, c(33:37,44)]
+employmentTesting <- data[ind == 2, c(33:37,44)]
 set.seed(1234)
 employmentPrediction <- knn(train = employmentTraining, test = employmentTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = employmentPrediction, prop.chisq = FALSE)
@@ -65,11 +68,5 @@ CrossTable(x = testingLabels, y = employmentPrediction, prop.chisq = FALSE)
 sectorTraining <- data[ind == 1, 47:50]
 sectorTesting <- data[ind == 2, 47:50]
 set.seed(1234)
-sectorPrediction <- knn(train = sectorTraining, test = sectorTraining, cl = trainingLabels, k = 3)
+sectorPrediction <- knn(train = sectorTraining, test = sectorTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = sectorPrediction, prop.chisq = FALSE)
-
-
-
-
-
-#cluster size is 3
