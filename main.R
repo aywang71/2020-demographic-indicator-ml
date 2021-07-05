@@ -26,14 +26,20 @@ dim(data)
 glimpse(data)
 str(data)
 print(sum(is.na(data)))
-data$outcome <- ifelse(data$percentage16_Donald_Trump>data$percentage16_Hillary_Clinton,-1,1) # -1 = republican, 1 = democrat
+data <- mutate(
+  data,
+  margin2016 = percentage16_Hillary_Clinton - percentage16_Donald_Trump,
+  margin2020 = percentage20_Joe_Biden - percentage20_Donald_Trump,
+  shift = margin2020 - margin2016
+)
+data$outcome <- ifelse(data$shift>0,1,-1) # -1 = republican, 1 = democrat
 data %>% count(outcome)
 
 ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
-trainingLabels <- data[ind == 1, 52]
-table(trainingLabels)
-testingLabels <- data[ind == 2, 52]
-table(testingLabels)
+trainingLabels <- data[ind == 1, 55]
+#table(trainingLabels)
+testingLabels <- data[ind == 2, 55]
+#table(testingLabels)
 
 populationTraining <- data[ind == 1, c(16:20,27)]
 populationTesting <- data[ind == 2, c(16:20,27)]
@@ -43,30 +49,52 @@ CrossTable(x = testingLabels, y = populationPrediction, prop.chisq = FALSE)
 
 raceTraining <- data[ind == 1, 21:26]
 raceTesting <- data[ind == 2, 21:26]
+raceTraining <- raceTraining
+raceTraining$sum <- rowSums(raceTraining)
+raceTraining$Hispanic <- raceTraining$Hispanic / raceTraining$sum
+raceTraining$White <- raceTraining$White / raceTraining$sum
+raceTraining$Black <- raceTraining$Black / raceTraining$sum
+raceTraining$Asian <- raceTraining$Asian / raceTraining$sum
+raceTraining$Native <- raceTraining$Native / raceTraining$sum
+raceTraining$Pacific <- raceTraining$Pacific / raceTraining$sum
+raceTraining$sum <- NULL
+raceTesting <- raceTesting
+raceTesting$sum <- rowSums(raceTesting)
+raceTesting$Hispanic <- raceTesting$Hispanic / raceTesting$sum
+raceTesting$White <- raceTesting$White / raceTesting$sum
+raceTesting$Black <- raceTesting$Black / raceTesting$sum
+raceTesting$Asian <- raceTesting$Asian / raceTesting$sum
+raceTesting$Native <- raceTesting$Native / raceTesting$sum
+raceTesting$Pacific <- raceTesting$Pacific / raceTesting$sum
+raceTesting$sum <- NULL
 set.seed(1234)
 racePrediction <- knn(train = raceTraining, test = raceTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = racePrediction, prop.chisq = FALSE)
 
-transportationTraining <- data[ind == 1, c(38:43,45)]
-transportationTesting <- data[ind == 2, c(38:43,45)]
-set.seed(1234)
-transportationPrediction <- knn(train = transportationTraining, test = transportationTesting, cl = trainingLabels, k = 3)
-CrossTable(x = testingLabels, y = transportationPrediction, prop.chisq = FALSE)
-
-incomeTraining <- data[ind == 1, c(28,30,31:32)]
-incomeTesting <- data[ind == 2, c(28,30,31:32)]
+incomeTraining <- data[ind == 1, c(28,30,31:33)]
+incomeTesting <- data[ind == 2, c(28,30,31:33)]
+incomeTraining$IncomePerCapErr <- NULL
+incomeTesting$IncomePerCapErr <- NULL
 set.seed(1234)
 incomePrediction <- knn(train = incomeTraining, test = incomeTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = incomePrediction, prop.chisq = FALSE)
 
-employmentTraining <- data[ind == 1, c(33:37,44)]
-employmentTesting <- data[ind == 2, c(33:37,44)]
-set.seed(1234)
-employmentPrediction <- knn(train = employmentTraining, test = employmentTesting, cl = trainingLabels, k = 3)
-CrossTable(x = testingLabels, y = employmentPrediction, prop.chisq = FALSE)
-
-sectorTraining <- data[ind == 1, 47:50]
-sectorTesting <- data[ind == 2, 47:50]
+sectorTraining <- data[ind == 1, c(34:38,44)]
+sectorTesting <- data[ind == 2, c(34:38,44)]
 set.seed(1234)
 sectorPrediction <- knn(train = sectorTraining, test = sectorTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = sectorPrediction, prop.chisq = FALSE)
+
+transportationTraining <- data[ind == 1, c(39:43,45)]
+transportationTesting <- data[ind == 2, c(39:43,45)]
+set.seed(1234)
+transportationPrediction <- knn(train = transportationTraining, test = transportationTesting, cl = trainingLabels, k = 3)
+CrossTable(x = testingLabels, y = transportationPrediction, prop.chisq = FALSE)
+
+workTraining <- data[ind == 1, 47:50]
+workTesting <- data[ind == 2, 47:50]
+set.seed(1234)
+workPrediction <- knn(train = workTraining, test = workTesting, cl = trainingLabels, k = 3)
+CrossTable(x = testingLabels, y = workPrediction, prop.chisq = FALSE)
+
+#TODO: set up graphics and maps 
