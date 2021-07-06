@@ -41,6 +41,12 @@ trainingLabels <- data[ind == 1, 55]
 testingLabels <- data[ind == 2, 55]
 #table(testingLabels)
 
+#list of flipped states
+changed <- c("AZ","WI","MI","GA","PA") #only from R --> D
+
+#define party colors for coloring of geographic plots
+partyColors <- c("#2E74C0", "#CB454A","#0000FF")
+
 populationTraining <- data[ind == 1, c(16:20,27)]
 populationTesting <- data[ind == 2, c(16:20,27)]
 set.seed(1234)
@@ -97,4 +103,6 @@ set.seed(1234)
 workPrediction <- knn(train = workTraining, test = workTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = workPrediction, prop.chisq = FALSE)
 
+#TODO: need to create countyFIPS and other graphical datasets for the modeling (see the original dataset for tips) 
 #TODO: set up graphics and maps 
+#TODO: determine whether small scales need to be applied for longer results section, and what kind of graphics need to be made
