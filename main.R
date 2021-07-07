@@ -47,6 +47,26 @@ changed <- c("AZ","WI","MI","GA","PA") #only from R --> D
 #define party colors for coloring of geographic plots
 partyColors <- c("#2E74C0", "#CB454A","#0000FF")
 
+customPCA <- function(data, description){
+  pca <- prcomp(t(data))
+  View(pca$x)
+  #screeplot + plot
+  plot(pca$x[,1],pca$x[,2])
+  #variance calculation
+  pcaV <- pca$sdev^2
+  pcaV <- round(pcaV/sum(pcaV)*100,1)
+  pcaV
+  barplot(pcaV)
+  #contributing variable plot
+  pcaDF <- data.frame(Sample=rownames(pca$x), X=pca$x[,1], Y=pca$x[,2])
+  pcaP <- ggplot(data=pcaDF, aes(x=X, y=Y, label=Sample)) +
+    geom_text() +
+    xlab(paste("PC1 - ", pcaV[1], "%", sep="")) +
+    ylab(paste("PC2 - ", pcaV[2], "%", sep="")) + 
+    ggtitle(paste("Demographic indicators in PCA analysis -", sep="\n"))
+  pcaP
+}
+
 populationTraining <- data[ind == 1, c(16:20,27)]
 populationTesting <- data[ind == 2, c(16:20,27)]
 set.seed(1234)
@@ -103,6 +123,82 @@ set.seed(1234)
 workPrediction <- knn(train = workTraining, test = workTesting, cl = trainingLabels, k = 3)
 CrossTable(x = testingLabels, y = workPrediction, prop.chisq = FALSE)
 
-#TODO: need to create countyFIPS and other graphical datasets for the modeling (see the original dataset for tips) 
+#adding FIPS numbers to county dataset 
+localCounty <- data.frame(countypop)
+#a bunch of replacement for matching stuff
+localCounty$county <- gsub(" county", "", localCounty$county, ignore.case=TRUE)
+localCounty$county <- gsub(" parish", "", localCounty$county, ignore.case=TRUE)
+localCounty$county <- gsub(" borough", "", localCounty$county, ignore.case=TRUE)
+localCounty$county <- gsub(" census area", "", localCounty$county, ignore.case=TRUE)
+localCounty$state <- localCounty$abbr
+localCounty$abbr <- NULL
+data <- inner_join(localCounty, data, by = c("county","state"))
+data$pop_2015 <- NULL
+
+#main triple plot
+main2020 <- plot_usmap(data = data, values = "margin2020", color = "white") + 
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
+  theme(legend.position = "none")
+main2020
+mainShift <- plot_usmap(data = data, values = "shift", color = "white") + 
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
+  theme(legend.position = "none")
+mainShift
+main2016 <- plot_usmap(data = data, values = "margin2016", color = "white") + 
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
+  theme(legend.position = "none")
+main2016
+grid.arrange(main2016, mainShift, main2020, nrow = 1)
+
+#pipe for group sorting
+stateSet <- data %>% 
+  group_by(state) %>% 
+  summarize(
+    stateMargin2016 = (sum(votes16_Hillary_Clinton)/sum(total_votes16)) - (sum(votes16_Donald_Trump)/sum(total_votes16)),
+    stateMargin2020 = (sum(votes20_Joe_Biden)/sum(total_votes20)) - (sum(votes20_Donald_Trump)/sum(total_votes20)),
+    totalPop = sum(TotalPop)
+  )
+stateSet$stateShift <- stateSet$stateMargin2020 - stateSet$stateMargin2016
+stateSet$abbr <- stateSet$state
+stateSet$state <- NULL
+#formatting and join stuff for FIPS codes
+stateSet <- inner_join(stateSet,statepop)
+stateSet$pop_2015 <- NULL
+#plot
+stateShift2 <- plot_usmap(data = stateSet, values = "stateShift", color = "white") + 
+  scale_fill_gradient2(low = "black", mid = "white", high = "black", na.value = "white") +
+  theme(legend.position = "none")
+statePop <- plot_usmap(data = stateSet, values = "totalPop", color = "white") + 
+  scale_fill_gradient2(low = "white", mid = "lightgray", high = "black", na.value = "white") +
+  theme(legend.position = "none")
+statePop
+grid.arrange(stateShift2,statePop,nrow=1)
+#plot
+state2020 <- plot_usmap(data = stateSet, values = "stateMargin2020", color = "gray") +
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white") +
+  theme(legend.position = "none")
+#state2020
+stateShift <- plot_usmap(data = stateSet, values = "stateShift", color = "gray") +
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white") +
+  theme(legend.position = "bottom")
+stateShift
+#plot
+state2016 <- plot_usmap(data = stateSet, values = "stateMargin2016", color = "gray") +
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white") +
+  theme(legend.position = "none")
+#state2016
+grid.arrange(state2016,stateShift,state2020, nrow = 1)
+
+#PCA work on Sector
+sector <- rbind(sectorTesting, sectorTraining)
+customPCA(sector)
+
+#professional is the best
+professionalPlot <- plot_usmap(data = data, values = "Professional", color = "lightgray") + 
+  scale_fill_gradient2(low = "black", mid = "gray10", high = "white", na.value = "white", name = "Professional sector", label = scales::comma) +
+  theme(legend.position = "none")
+professionalPlot
+
+
 #TODO: set up graphics and maps 
 #TODO: determine whether small scales need to be applied for longer results section, and what kind of graphics need to be made
