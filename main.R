@@ -135,28 +135,14 @@ localCounty$abbr <- NULL
 data <- inner_join(localCounty, data, by = c("county","state"))
 data$pop_2015 <- NULL
 
-#main triple plot
-main2020 <- plot_usmap(data = data, values = "margin2020", color = "white") + 
-  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
-  theme(legend.position = "none")
-main2020
-mainShift <- plot_usmap(data = data, values = "shift", color = "white") + 
-  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
-  theme(legend.position = "none")
-mainShift
-main2016 <- plot_usmap(data = data, values = "margin2016", color = "white") + 
-  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
-  theme(legend.position = "none")
-main2016
-grid.arrange(main2016, mainShift, main2020, nrow = 1)
-
 #pipe for group sorting
 stateSet <- data %>% 
   group_by(state) %>% 
   summarize(
     stateMargin2016 = (sum(votes16_Hillary_Clinton)/sum(total_votes16)) - (sum(votes16_Donald_Trump)/sum(total_votes16)),
     stateMargin2020 = (sum(votes20_Joe_Biden)/sum(total_votes20)) - (sum(votes20_Donald_Trump)/sum(total_votes20)),
-    totalPop = sum(TotalPop)
+    totalPop = sum(TotalPop),
+    Professional = sum(Professional / 100 * TotalPop) / sum(TotalPop) * 100 
   )
 stateSet$stateShift <- stateSet$stateMargin2020 - stateSet$stateMargin2016
 stateSet$abbr <- stateSet$state
@@ -180,7 +166,7 @@ state2020 <- plot_usmap(data = stateSet, values = "stateMargin2020", color = "gr
 #state2020
 stateShift <- plot_usmap(data = stateSet, values = "stateShift", color = "gray") +
   scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white") +
-  theme(legend.position = "bottom")
+  theme(legend.position = "none")
 stateShift
 #plot
 state2016 <- plot_usmap(data = stateSet, values = "stateMargin2016", color = "gray") +
@@ -197,7 +183,17 @@ customPCA(sector)
 professionalPlot <- plot_usmap(data = data, values = "Professional", color = "lightgray") + 
   scale_fill_gradient2(low = "black", mid = "gray10", high = "white", na.value = "white", name = "Professional sector", label = scales::comma) +
   theme(legend.position = "none")
-professionalPlot
+#professionalPlot
+professionalState <- plot_usmap(data = stateSet, values = "Professional", color = "white") + 
+  scale_fill_gradient2(low = "black", mid = "gray10", high = "white", na.value = "white", name = "Professional sector", label = scales::comma) +
+  theme(legend.position = "none")
+#professionalState
+stateShift <- plot_usmap(data = stateSet, values = "stateShift", color = "white") +
+  scale_fill_gradient2(low = "white", mid = "gray", high = "black", na.value = "white") +
+  theme(legend.position = "none")
+#stateShift
+
+grid.arrange(stateShift,professionalState, nrow = 1)
 
 
 #TODO: set up graphics and maps 
