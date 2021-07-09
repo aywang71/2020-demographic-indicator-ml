@@ -20,6 +20,7 @@ library(GGally)
 
 set.seed(1234)
 
+#baseline data read in 
 data <- read.csv("data/dataFresh.csv")
 data <- na.omit(data)
 dim(data)
@@ -35,6 +36,7 @@ data <- mutate(
 data$outcome <- ifelse(data$shift>0,1,-1) # -1 = republican, 1 = democrat
 data %>% count(outcome)
 
+#label setup 
 ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
 trainingLabels <- data[ind == 1, 55]
 #table(trainingLabels)
@@ -47,6 +49,7 @@ changed <- c("AZ","WI","MI","GA","PA") #only from R --> D
 #define party colors for coloring of geographic plots
 partyColors <- c("#2E74C0", "#CB454A","#0000FF")
 
+#custom PCA function 
 customPCA <- function(data, description){
   pca <- prcomp(t(data))
   View(pca$x)
@@ -66,6 +69,8 @@ customPCA <- function(data, description){
     ggtitle(paste("Demographic indicators in PCA analysis -", sep="\n"))
   pcaP
 }
+
+## various KNN groups run, basically same structure for all groups
 
 populationTraining <- data[ind == 1, c(16:20,27)]
 populationTesting <- data[ind == 2, c(16:20,27)]
@@ -135,6 +140,20 @@ localCounty$abbr <- NULL
 data <- inner_join(localCounty, data, by = c("county","state"))
 data$pop_2015 <- NULL
 
+#Triple graph format for shift detection (20,shift,16)
+main2020 <- plot_usmap(data = data, values = "margin2020", color = "white") + 
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
+  theme(legend.position = "none")
+main2020
+mainShift <- plot_usmap(data = data, values = "shift", color = "white") + 
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
+  theme(legend.position = "none")
+mainShift
+main2016 <- plot_usmap(data = data, values = "margin2016", color = "white") + 
+  scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white", name = "Electoral shift", label = scales::comma) +
+  theme(legend.position = "none")
+main2016
+
 #pipe for group sorting
 stateSet <- data %>% 
   group_by(state) %>% 
@@ -150,7 +169,8 @@ stateSet$state <- NULL
 #formatting and join stuff for FIPS codes
 stateSet <- inner_join(stateSet,statepop)
 stateSet$pop_2015 <- NULL
-#plot
+
+#triple plot at state scale 
 stateShift2 <- plot_usmap(data = stateSet, values = "stateShift", color = "white") + 
   scale_fill_gradient2(low = "black", mid = "white", high = "black", na.value = "white") +
   theme(legend.position = "none")
@@ -173,7 +193,11 @@ state2016 <- plot_usmap(data = stateSet, values = "stateMargin2016", color = "gr
   scale_fill_gradient2(low = partyColors[2], mid = "white", high = partyColors[1], na.value = "white") +
   theme(legend.position = "none")
 #state2016
+grid.arrange(main2016, mainShift, main2020, nrow = 1)
+
 grid.arrange(state2016,stateShift,state2020, nrow = 1)
+
+grid.arrange(main2016, mainShift, main2020, state2016, stateShift, state2020, nrow = 2, ncol = 3)
 
 #PCA work on Sector
 sector <- rbind(sectorTesting, sectorTraining)
@@ -185,16 +209,17 @@ professionalPlot <- plot_usmap(data = data, values = "Professional", color = "li
   theme(legend.position = "none")
 #professionalPlot
 professionalState <- plot_usmap(data = stateSet, values = "Professional", color = "white") + 
-  scale_fill_gradient2(low = "black", mid = "gray10", high = "white", na.value = "white", name = "Professional sector", label = scales::comma) +
-  theme(legend.position = "none")
-#professionalState
+  scale_fill_gradient2(low = "black", mid = "#666666", high = "white", na.value = "white", name = "Professional sector", label = scales::comma) +
+  theme(legend.position = "bottom")
+professionalState
 stateShift <- plot_usmap(data = stateSet, values = "stateShift", color = "white") +
   scale_fill_gradient2(low = "white", mid = "gray", high = "black", na.value = "white") +
-  theme(legend.position = "none")
-#stateShift
+  theme(legend.position = "bottom")
+stateShift
 
-grid.arrange(stateShift,professionalState, nrow = 1)
+#this grid compares state shift to percentage of professional workers
+grid.arrange(stateShift,professionalState, nrow =1)
+#grid.arrange(mainShift, professionalPlot)
 
 
-#TODO: set up graphics and maps 
 #TODO: determine whether small scales need to be applied for longer results section, and what kind of graphics need to be made
